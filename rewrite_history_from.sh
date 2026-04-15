@@ -44,4 +44,13 @@ else
     SED_OPTS="-r"
 fi
 
-git-filter-repo --subdirectory-filter $SUBDIRECTORY --refs main $(git tag -l) --force
+REFS_ARGS=()
+while IFS= read -r ref; do
+    [ -n "$ref" ] && REFS_ARGS+=("$ref")
+done <<< "$REV_LIST_PARAMS"
+
+if [ ${#REFS_ARGS[@]} -gt 0 ]; then
+    git-filter-repo --subdirectory-filter $SUBDIRECTORY --refs "${REFS_ARGS[@]}" --force
+else
+    git-filter-repo --subdirectory-filter $SUBDIRECTORY --refs "$(git rev-parse --abbrev-ref HEAD)" --force
+fi
