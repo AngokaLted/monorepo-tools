@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Restore original git history after rewrite
 #

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Rewrite git history so that only commits that made changes in a subdirectory are kept and rewrite all filepaths as if it was root
 # You can use arguments for "git rev-list" to specify what commits to rewrite (defaults to rewriting history of the checked-out branch)

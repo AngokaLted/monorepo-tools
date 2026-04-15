@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Build monorepo from specified remotes
 # You must first add the remotes by "git remote add <remote-name> <repository-url>" and fetch from them by "git fetch --all"

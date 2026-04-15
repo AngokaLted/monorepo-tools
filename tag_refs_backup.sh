@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Backup tag refs into refs/original-tags/, because `git filter-repo` doesn't do it
 #

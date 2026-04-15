@@ -1,4 +1,4 @@
-#!/bin/sh -ex
+#!/bin/bash -ex
 
 # Rewrite git history so that all filepaths are in a specific subdirectory
 # You can specify additional refs to further control what commits to rewrite.

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Wipe original git history after rewrite
 #

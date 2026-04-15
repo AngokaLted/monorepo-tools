@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Move tag refs from refs/original-tags/ into refs/tags/
 #
