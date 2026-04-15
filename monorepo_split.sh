@@ -19,6 +19,31 @@
 #
 # Example: monorepo_split.sh main-repository package-alpha:packages/alpha:master \
 #           package-beta:packages/beta:production
+#
+# Arguments
+# `-t` takes the name of the branch to split from the monorepo.
+#      If no -t option is specified, `main` is used.
+#
+# Positional Arguments
+#
+# All positional arguments follow the format <remote-name>[:<subdirectory>][:<branch>]
+# - remote-name  takes the name of the remote to push to
+# - subdirectory takes the name of the subdirectory that should be split to this remote
+# - branch       takes the name of the branch that is to be merged in.
+#                If no branch is provided, the TARGET_BRANCH is used.
+
+TARGET_BRANCH=main
+
+while getopts "t:" opt; do
+  case $opt in
+    t) TARGET_BRANCH="$OPTARG"
+      ;;
+    \?) echo "Invalid options -$OPTARG" >&2
+      ;;
+  esac
+done
+
+shift $((OPTIND -1))
 
 # Check provided arguments
 if [ "$#" -lt "1" ]; then
@@ -42,7 +67,7 @@ for PARAM in $@; do
     fi
     BRANCH_TO_MERGE=${PARAM_ARR[2]}
     if [ "$BRANCH_TO_MERGE" == "" ]; then
-        BRANCH_TO_MERGE=main
+        BRANCH_TO_MERGE=$TARGET_BRANCH
     fi
 
     # Capture remote URL before git-filter-repo removes it
@@ -54,9 +79,9 @@ for PARAM in $@; do
         continue
     fi
 
-    # Rewrite git history of main branch
+    # Rewrite git history of target branch
     echo "Splitting repository for the remote '$REMOTE' from subdirectory $SUBDIRECTORY"
-    git checkout main
+    git checkout $TARGET_BRANCH
 
     # Clear any previous filter-repo metadata to avoid conflicts with signature restoration
     if [ -d .git/filter-repo ]; then
@@ -65,12 +90,12 @@ for PARAM in $@; do
     fi
 
     # Check if there are any GPG signatures in the repository
-    HAS_SIGNATURES=$(git log main $(git tag -l) --show-signature 2>&1 | grep -c "gpgsig" || true)
+    HAS_SIGNATURES=$(git log $TARGET_BRANCH $(git tag -l) --show-signature 2>&1 | grep -c "gpg: Signature made" || true)
 
     # Store GPG signatures in commit messages before filtering (only if signatures exist)
     if [ "$HAS_SIGNATURES" -gt 0 ]; then
         echo "Found $HAS_SIGNATURES GPG signature(s), storing in commit messages..."
-        python3 $MONOREPO_SCRIPT_DIR/store_signatures.py --refs main $(git tag -l)
+        python3 $MONOREPO_SCRIPT_DIR/store_signatures.py --refs $TARGET_BRANCH $(git tag -l)
         if [ $? -ne 0 ]; then
             echo "Warning: Failed to store signatures, continuing anyway..."
         fi
@@ -78,12 +103,12 @@ for PARAM in $@; do
         echo "No GPG signatures found, skipping signature preservation..."
     fi
 
-    $MONOREPO_SCRIPT_DIR/rewrite_history_from.sh $SUBDIRECTORY main $(git tag -l)
+    $MONOREPO_SCRIPT_DIR/rewrite_history_from.sh $SUBDIRECTORY $TARGET_BRANCH $(git tag -l)
     if [ $? -eq 0 ]; then
         # Restore GPG signatures from commit messages after filtering (only if they were stored)
         if [ "$HAS_SIGNATURES" -gt 0 ]; then
             echo "Restoring GPG signatures from commit messages..."
-            python3 $MONOREPO_SCRIPT_DIR/restore_signatures.py --refs main $(git tag -l)
+            python3 $MONOREPO_SCRIPT_DIR/restore_signatures.py --refs $TARGET_BRANCH $(git tag -l)
             if [ $? -ne 0 ]; then
                 echo "Warning: Failed to restore signatures, continuing anyway..."
             fi
@@ -96,9 +121,9 @@ for PARAM in $@; do
             echo "Restored remote '$REMOTE' with URL: $REMOTE_URL"
         fi
 
-        echo "Pushing changes made on 'main' and all tags into '$REMOTE/$BRANCH_TO_MERGE'"
-        git push --tags $REMOTE main:$BRANCH_TO_MERGE
-        git lfs push $REMOTE main
+        echo "Pushing changes made on '$TARGET_BRANCH' and all tags into '$REMOTE/$BRANCH_TO_MERGE'"
+        git push --tags $REMOTE $TARGET_BRANCH:$BRANCH_TO_MERGE
+        git lfs push $REMOTE $TARGET_BRANCH
     else
         echo "Splitting repository for the remote '$REMOTE' failed! Not pushing anything into it."
     fi
