@@ -25,6 +25,9 @@ fi
 MONOREPO_SCRIPT_DIR=$(dirname "$0")
 # Wipe original refs (possible left-over back-up after rewriting git history)
 $MONOREPO_SCRIPT_DIR/original_refs_wipe.sh
+
+python3 $MONOREPO_SCRIPT_DIR/store_signatures.py
+
 for PARAM in $@; do
     # Parse parameters in format <remote-name>[:<subdirectory>]
     PARAM_ARR=(${PARAM//:/ })
@@ -60,3 +63,4 @@ done
 git commit -m "$COMMIT_MSG"
 git reset --hard
 
+python3 $MONOREPO_SCRIPT_DIR/restore_signatures.py -v
