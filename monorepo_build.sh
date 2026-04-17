@@ -2,13 +2,13 @@
 
 # Build monorepo from specified remotes
 # You must first add the remotes by "git remote add <remote-name> <repository-url>" and fetch from them by "git fetch --all"
-# Final monorepo will contain all branches from the first remote and main branches of all remotes will be merged.
+# Final monorepo will contain all branches from the first remote and develop branches of all remotes will be merged.
 #
-# The repository's combined branch will be main, not master.
+# The repository's combined branch will be develop, not master.
 #
 # If subdirectory is not specified remote name will be used instead
 #
-# You can also override the branch to be merged in, if main is not appropriate.
+# You can also override the branch to be merged in, if develop is not appropriate.
 # But you must specify a directory for this to work (this can match the remote name if this is the
 # desired behavior).
 #
@@ -40,13 +40,13 @@ for PARAM in $@; do
     fi
     BRANCH_TO_MERGE=${PARAM_ARR[2]}
     if [ "$BRANCH_TO_MERGE" == "" ]; then
-        BRANCH_TO_MERGE=main
+        BRANCH_TO_MERGE=develop
     fi
 
     echo "Fetching LFS files for remote '$REMOTE'"
     git lfs fetch --all $REMOTE $REMOTE/$BRANCH_TO_MERGE
 
-    # Rewrite all branches from the first remote, only main/target branch from others
+    # Rewrite all branches from the first remote, only develop/target branch from others
     if [ "$PARAM" == "$1" ]; then
         echo "Building all branches of the remote '$REMOTE'"
         $MONOREPO_SCRIPT_DIR/load_branches_from_remote.sh $REMOTE
@@ -56,7 +56,7 @@ for PARAM in $@; do
         echo "Building branch '$BRANCH_TO_MERGE' of the remote '$REMOTE'"
         git checkout --detach $REMOTE/$BRANCH_TO_MERGE
         # NOTE: Because we're checking out a detached branch, we don't end up on anything with a name,
-        # so selecting "main" is meaningless. We need to specify HEAD to keep the history here.
+        # so selecting "develop" is meaningless. We need to specify HEAD to keep the history here.
         $MONOREPO_SCRIPT_DIR/rewrite_history_into.sh $SUBDIRECTORY --refs HEAD
         MERGE_REFS="$MERGE_REFS $(git rev-parse HEAD)"
     fi
@@ -65,7 +65,7 @@ for PARAM in $@; do
 done
 # Merge all target branches
 COMMIT_MSG="merge multiple repositories into a monorepo"$'\n'$'\n'"- merged using: 'monorepo_build.sh $@'"$'\n'"- see https://github.com/embeddedartistry/monorepo-tools"
-git checkout main
+git checkout develop
 echo "Merging refs: $MERGE_REFS"
 git merge --no-commit -q $MERGE_REFS --allow-unrelated-histories
 echo 'Resolving conflicts using trees of all parents'

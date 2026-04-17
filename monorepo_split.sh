@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Split monorepo and push all main branches and all tags into specified remotes
+# Split monorepo and push all develop branches and all tags into specified remotes
 # You must first build the monorepo via "monorepo_build" (uses same parameters as "monorepo_split")
 #
 # If subdirectory is not specified remote name will be used instead.
 #
-# You can also override the branch to be merged in, if main is not appropriate.
+# You can also override the branch to be merged in, if develop is not appropriate.
 # But you must specify a directory for this to work (this can match the remote name if this is the
 # desired behavior).
 #
@@ -22,7 +22,7 @@
 #
 # Arguments
 # `-t` takes the name of the branch to split from the monorepo.
-#      If no -t option is specified, `main` is used.
+#      If no -t option is specified, `develop` is used.
 #
 # Positional Arguments
 #
@@ -32,7 +32,7 @@
 # - branch       takes the name of the branch that is to be merged in.
 #                If no branch is provided, the TARGET_BRANCH is used.
 
-TARGET_BRANCH=main
+TARGET_BRANCH=develop
 
 while getopts "t:" opt; do
   case $opt in
@@ -55,7 +55,7 @@ fi
 # Get directory of the other scripts
 MONOREPO_SCRIPT_DIR=$(dirname "$0")
 
-git branch main-checkpoint
+git branch checkpoint
 
 for PARAM in $@; do
     # Parse parameters in format <remote-name>[:<subdirectory>]
@@ -127,8 +127,8 @@ for PARAM in $@; do
     else
         echo "Splitting repository for the remote '$REMOTE' failed! Not pushing anything into it."
     fi
-    git reset main-checkpoint --hard
+    git reset checkpoint --hard
     $MONOREPO_SCRIPT_DIR/tag_refs_restore.sh
 done
 
-git branch -d main-checkpoint
+git branch -d checkpoint

@@ -2,11 +2,11 @@
 
 # Add repositories to a monorepo from specified remotes
 # You must first add the remotes by "git remote add <remote-name> <repository-url>" and fetch from them by "git fetch --all"
-# It will merge main branches of the monorepo and all remotes together while keeping all current branches in monorepo intact
+# It will merge develop branches of the monorepo and all remotes together while keeping all current branches in monorepo intact
 #
 # If subdirectory is not specified remote name will be used instead
 #
-# You can also override the branch to be merged in, if main is not appropriate.
+# You can also override the branch to be merged in, if develop is not appropriate.
 # But you must specify a directory for this to work (this can match the remote name if this is the
 # desired behavior).
 #
@@ -38,7 +38,7 @@ for PARAM in $@; do
     fi
     BRANCH_TO_MERGE=${PARAM_ARR[2]}
     if [ "$BRANCH_TO_MERGE" == "" ]; then
-        BRANCH_TO_MERGE=main
+        BRANCH_TO_MERGE=develop
     fi
     echo "Fetching LFS files for remote '$REMOTE'"
     git lfs fetch --all $REMOTE $REMOTE/$BRANCH_TO_MERGE
@@ -51,7 +51,7 @@ for PARAM in $@; do
 done
 # Merge target branch
 COMMIT_MSG="merge multiple repositories into an existing monorepo"$'\n'$'\n'"- merged using: 'monorepo_add.sh $@'"$'\n'"- see https://github.com/embeddedartistry/monorepo-tools"
-git checkout main
+git checkout develop
 echo "Merging refs: $MERGE_REFS"
 git merge --no-commit -q $MERGE_REFS --allow-unrelated-histories
 echo 'Resolving conflicts using trees of all parents'
