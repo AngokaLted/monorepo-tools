@@ -1,14 +1,14 @@
-# Embedded Artistry Monorepo Tools
+# ANGOKA Monorepo Tools
 
-**This package is used for splitting the Embedded Artistry monorepo and we share it with our community as it is. We are willing to consider issues and pull requests, but this project's primary purpose is to serve our own use case.**
+**This package is used for splitting the ANGOKA monorepo and we share it with our community as it is. We are willing to consider issues and pull requests, but this project's primary purpose is to serve our own use case.**
 
 Tools for building and splitting monolithic repository from existing packages.
 
 We created these scripts because we couldn't find a tool that would keep the git history of subpackages unchanged.
 
-You may need to update your `git` (tested on `2.16.1`).
+You may need to update your `git` (tested on `2.53.0`).
 
-This repository is maintained in [embeddedartistry/monorepo](https://github.com/embeddedartistry/monorepo).
+This repository is maintained in [AngokaLted/monorepo-tools](https://github.com/AngokaLted/monorepo-tools).
 
 Primary differences from the original [shopsys/monorepo-tools](https://github.com/shopsys/monorepo-tools):
 
@@ -17,6 +17,13 @@ Primary differences from the original [shopsys/monorepo-tools](https://github.co
 - Works with `main` branch by default
 - Provides an option for overriding which branch will be merged in or split out
 
+Primary differences from the forked [embeddedartistry/monorepo-tools](https://github.com/embeddedartistry/monorepo)
+
+- Provides an option for overriding which branch on the monorepo will be split out
+- Works with `develop` branch by default
+- Uses `/bin/bash` in all scripts
+- Always perform signature preservation when building or adding to the monorepo
+
 ## Quick start
 
 ### 1. Download
@@ -24,7 +31,7 @@ Primary differences from the original [shopsys/monorepo-tools](https://github.co
 First download this repository so you can use the tools (eg. into `~/monorepo-tools`).
 
 ```
-git clone https://github.com/embeddedartistry/monorepo-tools ~/monorepo-tools
+git clone https://github.com/AngokaLted/monorepo-tools ~/monorepo-tools
 ```
 
 ### 2. Preparing an empty repository with added remotes
@@ -174,4 +181,8 @@ Usage: `tag_refs_restore.sh`
 
 This repository is READ-ONLY.
 
-You can report issues here, but it is better to [report issues](https://github.com/embeddedartistry/monorepo/issues/new) and/or send [pull requests](https://github.com/embeddedartistry/monorepo/compare) in the main [embeddedartistry/monorepo repository](https://github.com/embeddedartistry/monorepo).
+You can report issues here, but it is better to [report issues](https://github.com/AngokaLted/monorepo-tools/issues/new) and/or send [pull requests](https://github.com/AngokaLted/monorepo-tools/compare) in the main [AngokaLted/monorepo-tools repository](https://github.com/AngokaLted/monorepo-tools).
+
+## Acknowledgments
+
+Based on the work done by the original [shopsys/monorepo-tools](http://github.com/shopsys/monorepo-tools) repository and the changes made on [embeddedartistry/monorepo-tools](http://github.com/embeddedartistry/monorepo-tools)
