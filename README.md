@@ -46,7 +46,12 @@ git init
 git remote add main-repository http://github.com/vendor/main-repository.git
 git remote add package-alpha http://github.com/vendor/alpha.git
 git remote add package-beta http://github.com/vendor/beta.git
+
+# If you want to fetch all branches
 git fetch --all --no-tags
+
+# Or if you only want to pull in one branch. eg: develop
+git remote | xargs -I {} git fetch {} develop --no-tags
 ```
 
 ### 3. Building the monorepo
