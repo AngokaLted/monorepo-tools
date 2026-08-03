@@ -3,8 +3,13 @@
 Store GPG signatures in commit messages.
 
 This script processes a git repository and moves GPG signatures from commits
-into the commit messages (appending "original_gpgsig <type>\n<data>"). This
-allows signatures to survive git-filter-repo operations and be restored later.
+into the commit messages (appending "original_gpgsig <type> <len>\n<data>").
+This allows signatures to survive git-filter-repo operations and be restored
+later.
+
+The original message length is recorded in the trailer so
+restore_signatures.py can slice the message back out exactly, byte for
+byte, regardless of how many trailing newlines the original message had.
 
 Usage:
     store_signatures.py [--refs <refs>...]
@@ -78,15 +83,20 @@ def process_fast_export_stream(input_stream, output_stream):
         for header in headers:
             output_stream.write(header)
 
-        # Build new message with signature appended
+        # Build new message with signature appended.
+        #
+        # The trailer's boundary is defined solely by the recorded length of
+        # the original message, not by how many trailing newlines it has.
+        # This is deliberate: if the original message already ends in a
+        # blank line (common for GitHub-generated merge commit bodies), a
+        # newline-counting scheme can't tell "end of original message" apart
+        # from "end of message's own trailing blank line", and silently
+        # drops a byte on restore.
         new_msg = commit_msg
         if sig_type and sig_data:
             signatures_stored += 1
-            # Ensure message ends with single newline before appending
-            if not new_msg.endswith(b'\n'):
-                new_msg += b'\n'
-
-            new_msg += b'\noriginal_gpgsig ' + sig_type + b'\n' + sig_data
+            new_msg += (b'\noriginal_gpgsig ' + sig_type + b' ' +
+                        str(len(commit_msg)).encode() + b'\n' + sig_data)
 
         # Write new commit message
         output_stream.write(b'data %d\n' % len(new_msg))
@@ -187,8 +197,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 This script is designed to prepare a repository for git-filter-repo by moving
-GPG signatures into commit messages. After filtering, use restore_signatures.py
-to restore them.
+GPG signatures into commit messages. After filtering, use
+restore_signatures.py to restore them.
 
 Example workflow:
   1. Run this script to store signatures in messages

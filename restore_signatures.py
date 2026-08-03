@@ -3,8 +3,15 @@
 Restore GPG signatures from commit messages.
 
 This script processes a git repository where GPG signatures have been stored
-in commit messages (with the format "original_gpgsig <type>\n<data>") and
-restores them as proper git commit signatures.
+in commit messages by store_signatures.py (with the format
+"original_gpgsig <type> <original-message-length>\n<data>") and restores them
+as proper git commit signatures.
+
+The original message length recorded in the trailer is used to slice the
+message back out exactly, byte for byte, instead of inferring the boundary
+from a fixed number of newlines (which breaks when the original message
+itself ends in a blank line) or trusting the first text match of the marker
+(which could coincidentally appear in a real commit message).
 
 Usage:
     restore_signatures.py [--refs <refs>...]
@@ -15,25 +22,6 @@ If no refs are specified, processes all refs.
 import sys
 import subprocess
 import argparse
-import re
-
-
-def parse_data_block(stream):
-    """Parse a 'data <size>' block from fast-export stream."""
-    line = stream.readline()
-    if not line.startswith(b'data '):
-        raise ValueError(f"Expected 'data' line, got: {line}")
-
-    size = int(line.split()[1])
-    data = stream.read(size)
-
-    # Consume trailing newline if present
-    next_byte = stream.read(1)
-    if next_byte and next_byte != b'\n':
-        # Put it back by creating a new reader
-        stream = type(stream)(next_byte + stream.read())
-
-    return data
 
 
 def extract_signature_from_message(commit_msg):
@@ -43,23 +31,39 @@ def extract_signature_from_message(commit_msg):
     Returns:
         tuple: (cleaned_message, sig_type, sig_data) or (commit_msg, None, None)
     """
-    sig_identifier = b"\n\noriginal_gpgsig "
-    sig_index = commit_msg.find(sig_identifier)
+    sig_identifier = b"\noriginal_gpgsig "
+    # Our own trailer is always appended last, so it's the last occurrence of
+    # this marker in the message. Searching from the end makes this immune to
+    # a real commit message that happens to contain similar text earlier in
+    # its body.
+    sig_index = commit_msg.rfind(sig_identifier)
 
     if sig_index == -1:
         return commit_msg, None, None
 
-    # Split message and signature section
-    cleaned_msg = commit_msg[:sig_index]
     sig_section = commit_msg[sig_index + len(sig_identifier):]
 
-    # Parse signature type and data
     first_newline = sig_section.find(b'\n')
     if first_newline == -1:
         # Malformed signature
         return commit_msg, None, None
 
-    sig_type = sig_section[:first_newline]
+    header = sig_section[:first_newline]
+    # sig_type itself can contain a space (e.g. "sha1 openpgp"), so only
+    # split off the trailing length token.
+    header_parts = header.rsplit(b' ', 1)
+    if len(header_parts) != 2 or not header_parts[1].isdigit():
+        return commit_msg, None, None
+
+    sig_type, orig_len = header_parts[0], int(header_parts[1])
+
+    # Sanity check: for a genuine trailer, sig_index is by construction equal
+    # to the original message length. A mismatch means this wasn't actually
+    # our trailer (e.g. a coincidental match) - leave the message untouched.
+    if orig_len != sig_index:
+        return commit_msg, None, None
+
+    cleaned_msg = commit_msg[:orig_len]
     sig_data = sig_section[first_newline + 1:]
 
     return cleaned_msg, sig_type, sig_data
@@ -89,6 +93,18 @@ def process_fast_export_stream(input_stream, output_stream):
 
         while True:
             line = input_stream.readline()
+
+            if line.startswith(b'gpgsig '):
+                # A real, un-stored signature is still attached to this
+                # commit. Restoring on top of it would misparse the
+                # signature's own 'data' block as the commit message and
+                # silently corrupt the commit, so fail loudly instead.
+                raise ValueError(
+                    "Unexpected gpgsig header in restore input; the input "
+                    "stream still has signatures attached. Was the store "
+                    "step applied to this repository (and to the same "
+                    "--refs)?"
+                )
 
             if line.startswith(b'data '):
                 # This is the commit message
@@ -215,9 +231,10 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 This script is designed to work after git-filter-repo has been used with
-signatures stored in commit messages. It extracts signatures from messages
-(in the format "original_gpgsig <type>\\n<data>") and restores them as
-proper git commit signatures.
+signatures stored in commit messages by store_signatures.py. It
+extracts signatures from messages (in the format
+"original_gpgsig <type> <original-message-length>\\n<data>") and restores
+them as proper git commit signatures.
 
 Example workflow:
   1. Run git-filter-repo with signatures in messages
